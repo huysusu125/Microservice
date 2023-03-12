@@ -11,4 +11,9 @@ spring:
       database: product-service
       auto-index-creation: true
 
+#logging:
+#  level:
+#    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+#    org.springframework.data.mongodb.core.ReactiveMongoTemplate: DEBUG
+
 

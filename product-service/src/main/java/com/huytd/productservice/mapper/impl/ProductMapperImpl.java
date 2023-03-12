@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ProductMapperImpl implements ProductMapper {
     @Override
-    public Product toDocument(ProductRequest productRequest) {
+    public Product mapToDocument(ProductRequest productRequest) {
         return Product.builder()
                 .name(productRequest.getName())
                 .description(productRequest.getDescription())

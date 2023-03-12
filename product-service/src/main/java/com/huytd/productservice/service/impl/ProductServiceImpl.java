@@ -9,10 +9,7 @@ import com.huytd.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.ExampleMatcher;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -21,6 +18,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Service
@@ -30,10 +29,11 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final ReactiveMongoTemplate reactiveMongoTemplate;
+
     @Override
     public Mono<BaseResponse> createProduct(ProductRequest productRequest) {
         return productRepository
-                .save(productMapper.toDocument(productRequest))
+                .save(productMapper.mapToDocument(productRequest))
                 .map(product -> BaseResponse
                         .builder()
                         .data(product.getId())
@@ -43,32 +43,27 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Mono<BaseResponse> getAllProducts(String search, BigDecimal priceFrom, BigDecimal priceTo, Integer page, Integer size) {
         Criteria criteria = new Criteria();
-//        if (StringUtils.isNotBlank(search)) {
-//            criteria = criteria.andOperator(Criteria.where("name").regex(search, "i").orOperator(Criteria.where("description").regex(search, "i")));
-//        }
-//        if (priceFrom != null) {
-//            criteria = criteria.andOperator(Criteria.where("price").gte(priceFrom)); // gte >= gt >
-//        }
-//
-//        if (priceTo != null) {
-//            criteria = criteria.andOperator(Criteria.where("price").lte(priceTo));   // lte >= lt >
-//        }
-        Criteria priceCriteria = new Criteria();
+        Collection<Criteria> criteriaCollection = new ArrayList<>();
+        if (StringUtils.isNotBlank(search)) {
+            criteriaCollection.add(new Criteria().orOperator(Criteria.where("name").regex(search.trim(), "i"), Criteria.where("description").regex(search.trim(), "i")));
+        }
         if (priceFrom != null) {
-            priceCriteria = priceCriteria.andOperator(Criteria.where("price").gte(priceFrom));
+            criteriaCollection.add(Criteria.where("price").gte(priceFrom)); // gte >= gt >
         }
         if (priceTo != null) {
-            priceCriteria = priceCriteria.andOperator(Criteria.where("price").lte(priceTo));
+            criteriaCollection.add(Criteria.where("price").lte(priceTo));   // lte <= lt >
         }
-
-        criteria = criteria.andOperator(priceCriteria);
+        if (!criteriaCollection.isEmpty()) {
+            criteria = criteria.andOperator(criteriaCollection);
+        }
         Sort sort = Sort.by(Sort.Direction.ASC, "price").and(Sort.by(Sort.Direction.ASC, "name"))
-                .and(Sort.by(Sort.Direction.ASC,"description"));
+                .and(Sort.by(Sort.Direction.ASC, "description"));
         PageRequest pageRequest = PageRequest.of(page, size, sort);
         Query query = new Query(criteria);
         return reactiveMongoTemplate
                 .find(query.with(pageRequest), Product.class)
                 .collectList()
+                .zipWith(reactiveMongoTemplate.count(query, Product.class))
                 .map(data -> BaseResponse.builder().data(data).build());
 
     }

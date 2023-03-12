@@ -8,6 +8,7 @@ class ProductServiceApplicationTests {
 
     @Test
     void contextLoads() {
+        System.out.println("huytd");
     }
 
 }

@@ -18,8 +18,10 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Builder
 @Data
-@CompoundIndex(name = "name_description_price_idx", def = "{'name': 1, 'description': 1, 'price': 1}") // 1 asc 2 desc
-@CompoundIndex(name = "name_price_idx", def = "{'name' : 1, 'price': 1}")
+@CompoundIndex(name = "name_description_sku_code_price_idx",
+        def = "{'name': 1, 'description': 1, 'sku_code':1, 'price': 1}") // 1 asc 2 desc
+@CompoundIndex(name = "name_price_idx",
+        def = "{'name' : 1, 'price': 1}")
 public class Product {
     @Id
     private String id;
@@ -29,6 +31,10 @@ public class Product {
 
     @Field("description")
     private String description;
+
+    @Field("sku_code")
+    @Indexed
+    private String skuCode;
 
     @Indexed
     @Field(targetType = FieldType.DECIMAL128, name = "price")
